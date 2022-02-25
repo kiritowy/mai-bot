@@ -6,6 +6,7 @@ from nonebot.adapters import Event, Bot
 from nonebot.adapters.cqhttp import Message
 from PIL import Image
 import os
+import  requests,json
 
 from src.libraries.tool import hash
 from src.libraries.maimaidx_music import *
@@ -409,7 +410,7 @@ async def _(bot: Bot, event: Event, state: T_State):
     if qq == '652099302':
         await jj.finish('先教我先教我')
 
-mr = on_command('卖弱', aliases={'脉弱', '麦若', 'mairuo', '买若', '卖若'})
+mr = on_command('卖弱', aliases={'脉弱', '麦若', 'mairuo', '买若', '卖若','脉络'})
 
 @mr.handle()
 async def _(bot: Bot, event: Event, state: T_State):
@@ -505,7 +506,7 @@ def readdirpaopao():
     return allfiles2
 
 
-wkl = on_command('乌克兰', aliases={'俄罗斯', '俄罗斯乌克兰', '乌克兰与俄罗斯', '基辅', '毛子', '普京大帝'})
+wkl = on_command('乌克兰', aliases={'俄罗斯', '俄罗斯乌克兰', '乌克兰与俄罗斯', '基辅', '毛子', '普京大帝', '普京'})
 
 @wkl.handle()
 async def _(bot: Bot, event: Event, state: T_State):
@@ -539,3 +540,31 @@ hll = on_command('货拉拉拉不拉拉布拉多')
 @hll.handle()
 async def _(bot: Bot, event: Event, state: T_State):
         await hll.finish('货拉拉拉不拉拉布拉多取决于货拉拉上拉的拉布拉多拉得多不多')
+
+
+def gupiao(code:str):
+    url = 'http://hq.sinajs.cn/list=' + code
+    req = requests.get(url,headers={"Referer":"https://finance.sina.com.cn/"})
+    result = req.text
+    arr1 = result.split('=')
+    arr2 = arr1[1].split('"')
+    arr3 = arr2[1].split(",")
+    logger.info(arr3)
+    return arr3
+
+gupiao2 = on_regex(r"^股票.+")
+
+@gupiao2.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    regex = "股票(.+)"
+    code1 = re.match(regex, str(event.get_message())).groups()[0].strip()
+    logger.info(code1)
+    if code1 == "":
+        return
+    res = gupiao(code1)
+    # await gupiao2.finish(res)
+    if len(res) == 0:
+        await gupiao2.send("没有找到这个股票")
+    else:
+        await gupiao2.send(f"股票名字：{res[0]}\n今日开盘：{res[1]}\n昨日收盘：{res[2]}\n当前价格：{res[3]}\n今日最高价：{res[4]}\n今日最低价：{res[5]}\n当前日期：{res[30]}\n刷新时间：{res[31]}\n烧鹅提醒您：\n投资有风险\n入市需谨慎\n又在摸鱼炒股啊，我替老板求求你上会儿班吧")
+
