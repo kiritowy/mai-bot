@@ -1,4 +1,5 @@
 import asyncio
+from asyncio.log import logger
 import os
 import math
 from typing import Optional, Dict, List, Tuple
@@ -392,6 +393,7 @@ def computeRa(ds: float, achievement: float) -> int:
 
 
 async def generate50(payload: Dict) -> Tuple[Optional[Image.Image], bool]:
+    print()
     async with aiohttp.request("POST", "https://www.diving-fish.com/api/maimaidxprober/query/player", json=payload) as resp:
         if resp.status == 400:
             return None, 400
@@ -400,11 +402,18 @@ async def generate50(payload: Dict) -> Tuple[Optional[Image.Image], bool]:
         sd_best = BestList(35)
         dx_best = BestList(15)
         obj = await resp.json()
+        print('-------------------------------')
+        print(obj)
         dx: List[Dict] = obj["charts"]["dx"]
         sd: List[Dict] = obj["charts"]["sd"]
         for c in sd:
             sd_best.push(ChartInfo.from_json(c))
         for c in dx:
             dx_best.push(ChartInfo.from_json(c))
+        print('-----------------')
+        print(sd_best)
+        print('-----------------------')
+        print(dx_best)
         pic = DrawBest(sd_best, dx_best, obj["nickname"]).getDir()
+        print(pic)
         return pic, 0

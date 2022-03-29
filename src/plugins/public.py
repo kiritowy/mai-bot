@@ -7,6 +7,8 @@ from nonebot.typing import T_State
 from nonebot.adapters.cqhttp import Message, Event, Bot
 from src.libraries.image import *
 from random import randint
+import nonebot
+from nonebot.adapters.cqhttp import ActionFailed
 
 
 help = on_command('help')
@@ -94,21 +96,63 @@ async def _(bot: Bot, event: Event, state: T_State):
 
 
 async def _group_poke(bot: Bot, event: Event, state: dict) -> bool:
-    value = (event.notice_type == "notify" and event.sub_type == "poke" and event.target_id == int(bot.self_id))
+    value = (event.notice_type == "notify" and event.sub_type == "poke" and event.target_id == int(bot.self_id) and event.user_id != 652099302)
+    return value
+
+async def _group_poke_paopao(bot: Bot, event: Event, state: dict) -> bool:
+    value = (event.notice_type == "notify" and event.sub_type == "poke" and event.user_id == 652099302)
     return value
 
 
+async def sleepsb(gid: int, id: int, time: int):
+    yield nonebot.get_bot().set_group_ban(
+                group_id=gid,
+                user_id=id,
+                duration=time,
+    )
 poke = on_notice(rule=_group_poke, priority=10, block=True)
 
 
 @poke.handle()
 async def _(bot: Bot, event: Event, state: T_State):
-    if event.__getattribute__('group_id') is None:
-        event.__delattr__('group_id')
-    await poke.send(Message([{
-        "type": "poke",
-        "data": {
-            "qq": f"{event.sender_id}"
-        }
-    }]))
+    sb = int(event.get_user_id())
+    gid = event.group_id
+    time = random.randint(1, 43200)
+    baning = sleepsb(gid=gid, id=sb, time=time)
+    # if event.__getattribute__('group_id') is None:
+    #     event.__delattr__('group_id')
+    # await poke.send(Message([{
+    #     "type": "poke",
+    #     "data": {
+    #         "qq": f"{event.sender_id}"
+    #     }
+    # }]))
+    async for sleeped in baning:
+        if sleeped:
+            try:
+                await sleeped
+            except ActionFailed:
+                await poke.finish("拍你妈")
+            else:
+                await poke.finish("拍你妈")
+                # logger.info("禁言操作成功")
+
+poke2 = on_notice(rule=_group_poke_paopao, priority=10, block=True)
+
+
+@poke2.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    sb = 652099302
+    gid = event.group_id
+    time = random.randint(1, 300)
+    baning = sleepsb(gid=gid, id=sb, time=time)
+    async for sleeped in baning:
+        if sleeped:
+            try:
+                await sleeped
+            except ActionFailed:
+                await poke2.finish("喜欢拍是吧")
+            else:
+                await poke2.finish("喜欢拍是吧")
+                # logger.info("禁言操作成功")
 

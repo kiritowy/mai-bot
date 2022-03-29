@@ -13,7 +13,10 @@ from src.libraries.maimaidx_music import *
 from src.libraries.image import *
 from src.libraries.maimai_best_40 import generate
 from src.libraries.maimai_best_50 import generate50
+from src.libraries.enet_b50 import enetgenerate50
+from src.libraries.enet import *
 import re
+import pymysql
 
 
 def song_txt(music: Music):
@@ -368,6 +371,7 @@ async def _(bot: Bot, event: Event, state: T_State):
     else:
         payload = {'username': username,'b50':  True}
     img, success = await generate50(payload)
+    print(img,success)
     if success == 400:
         await best_50_pic.send("未找到此玩家，请确保此玩家的用户名和查分器中的用户名相同。")
     elif success == 403:
@@ -381,6 +385,26 @@ async def _(bot: Bot, event: Event, state: T_State):
                 }
             }
         ]))
+
+enetbest_50_pic = on_command('鹅网b50')
+
+
+@enetbest_50_pic.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    qq = str(event.get_user_id())
+    aime = aimesearch(qq)
+    userid = searchId(aime)
+    img, success = enetgenerate50(userid)
+    logger.info(img)
+    logger.info(success)
+    await enetbest_50_pic.send(Message([
+        {
+            "type": "image",
+            "data": {
+                "file": f"base64://{str(image_to_base64(img), encoding='utf-8')}"
+            }
+        }
+    ]))
 
 
 tql = on_regex(r".*CQ:image,file.*")
@@ -568,3 +592,173 @@ async def _(bot: Bot, event: Event, state: T_State):
     else:
         await gupiao2.send(f"股票名字：{res[0]}\n今日开盘：{res[1]}\n昨日收盘：{res[2]}\n当前价格：{res[3]}\n今日最高价：{res[4]}\n今日最低价：{res[5]}\n当前日期：{res[30]}\n刷新时间：{res[31]}\n烧鹅提醒您：\n投资有风险\n入市需谨慎\n又在摸鱼炒股啊，我替老板求求你上会儿班吧")
 
+dnm = on_command('广州市市歌')
+
+@dnm.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    await dnm.send(Message([
+            {
+                "type": "record",
+                "data": {
+                    "file": f"file:///home/pi/mai-bot/src/static/record/dnm.mp3"
+                }
+            }
+        ]))
+
+# kop = on_command('/kop链接')
+
+# @kop.handle()
+# async def _(bot: Bot, event: Event, state: T_State):
+#     await kop.finish("万众期待的SEGA系街机音游比赛——KING of Performai 3rd即将在今天2/27 11:00(北京时间) 正式开幕! 注意是北京时间哦！\n油管官方观看：http://t.cn/A66zt9xm\n也有国内部分的朋友提供友情转播+非官方解说：\n\n虎牙直播平台：http://t.cn/A66zt9xE 三机种全程直播解说\n主播：@GameG游戏基\n嘉宾：@小豆亚麻 @内田玛雅\n\nbilibili: http://t.cn/A66zt9xn maimai侧直播解说\n主播：@桜語不詳_SAKURAGO")
+
+# enet = on_regex(r"^鹅网信息.+")
+enet = on_command("鹅网信息")
+
+@enet.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    # regex = "鹅网信息(.+)"
+    # aime = re.match(regex, str(event.get_message())).groups()[0].strip()
+    qq = str(event.get_user_id())
+    aime = aimesearch(qq)
+    logger.info(aime)
+    if aime == "":
+        return
+    userid = searchId(aime)
+    if userid == 'null':
+        await enet.send("没有找到这个玩家")
+    else:
+        info = searchMaiInfo(userid)
+        await enet.send(f"玩家名字：{info['userName']}\n最近游戏时间：{info['lastPlayDate']}\n玩家Rating：{info['playerRating']}")
+
+def searchId(aime:str):
+    url = 'http://youraquaurl/api/sega/aime/getByAccessCode'
+    data1 = {'accessCode':aime}
+    datajs = json.dumps(data1)
+    logger.info(datajs)
+    req = requests.post(url,data=datajs,headers={"Content-Type":"application/json"},verify = False)
+    result = req.text
+    if result == 'null':
+        return "null"
+    else:    
+        req1 = json.loads(result)
+        extid = req1['extId']
+        logger.info(extid)
+        return extid
+
+def searchMaiInfo(Userid:str):
+    url = 'http://youraquaurl/Maimai2Servlet/Maimai2Servlet/GetUserPreviewApi'
+    data1 = {'userId':Userid, 'segaIdAuthKey': ""}
+    datajs = json.dumps(data1)
+    logger.info(datajs)
+    req = requests.post(url,data=datajs,headers={"Content-Type":"application/json"},verify = False)
+    result = req.text
+    req1 = json.loads(result)
+    logger.info(req1)
+    return req1
+
+
+enetcard = on_regex(r"^鹅网绑卡.+")
+
+@enetcard.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    regex = "鹅网绑卡(.+)"
+    aime = re.match(regex, str(event.get_message())).groups()[0].strip()
+    qq = str(event.get_user_id())
+    logger.info(aime)
+    if aime == "":
+        await enetcard.send("没有输入卡号绑你妈呢")
+        return
+    else:
+        aimeblind(qq,aime)
+        await enetcard.send(f"已绑定\nQQ：{qq}\nAime卡号：{aime}")
+    # if aime == "":
+    #     return
+    # userid = searchId(aime)
+    # if userid == 'null':
+    #     await enet.send("没有找到这个玩家")
+    # else:
+    #     info = searchMaiInfo(userid)
+    #     await enet.send(f"玩家名字：{info['userName']}\n最近游戏时间：{info['lastPlayDate']}\n玩家Rating：{info['playerRating']}")
+
+def aimeblind(qq:str,aime:str):
+    conn=pymysql.connect(host='localhost',user='root',password='pw')
+    conn.select_db('aime_card')
+    cur=conn.cursor()#获取游标
+    insert=cur.execute(f"insert into aime (qq,aime) values('{qq}','{aime}')")
+    print('添加语句受影响的行数：',insert)
+    cur.close()
+    conn.commit()
+    conn.close()
+    print('sql执行成功')    
+
+def aimesearch(qq):
+    conn = pymysql.connect(host='localhost',user = "root",password = "pw",db = "aime_card")
+    cursor=conn.cursor()
+    cursor.execute(f"select aime from aime where qq = '{qq}';")
+    while 1:
+        res=cursor.fetchone()
+        if res is None:
+            #表示已经取完结果集
+            break
+        print (res)
+        out = res[0]
+    cursor.close()
+    conn.commit()
+    conn.close()
+    return out
+
+enetsearchPhoto = on_command("鹅网图片查询")
+
+@enetsearchPhoto.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    qq = str(event.get_user_id())
+    aime = aimesearch(qq)
+    logger.info(aime)
+    if aime == "":
+        return
+    userid = searchId(aime)
+    if userid == 'null':
+        await enetsearchPhoto.send("没有找到这个玩家")
+    else:
+        info = searchMaiInfo(userid)
+        photolist = allphoto(userid)
+        print(userid)
+        print('============')
+        print(photolist)
+        if len(photolist) != 0:
+            result = handlePlist(photolist)
+            await enetsearchPhoto.send(f"玩家名字：{info['userName']}\n图片时间列表：\n{result}")
+        else:
+            await enetsearchPhoto.send(f"玩家名字：{info['userName']}\n你还没有上传过图片，还不赶紧去机厅打mai")    
+
+
+def handlePlist(plist):
+    out = ''
+    for i in range(0, len(plist)):
+        out = f"{out}{i+1}、{plist[i]}\n"
+    return out
+
+enetdownPhoto = on_regex(r"^鹅网图片下载.+")
+
+@enetdownPhoto.handle()
+async def _(bot: Bot, event: Event, state: T_State):
+    regex = "鹅网图片下载(.+)"
+    phtime = re.match(regex, str(event.get_message())).groups()[0].strip()
+    qq = str(event.get_user_id())
+    aime = aimesearch(qq)
+    # logger.info(aime)
+    if aime == "":
+        return
+    userid = searchId(aime)
+    if userid == 'null':
+        await enetdownPhoto.send("没有找到这个玩家")
+    else:
+        photoname = downloadPhoto(userid=userid,photo=phtime)
+        await enetdownPhoto.send(Message([
+            {
+                "type": "image",
+                "data": {
+                    "file": f"file:///home/pi/mai-bot/src/static/{photoname}"
+                }
+            }
+        ]))
